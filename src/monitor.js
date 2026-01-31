@@ -38,8 +38,8 @@ async function getInfo() {
       async ({ CITY, STREET, csrfToken }) => {
         const formData = new URLSearchParams()
         formData.append("method", "getHomeNum")
-        formData.append("data[0][name]", "city")
-        formData.append("data[0][value]", CITY)
+//        formData.append("data[0][name]", "city")
+//        formData.append("data[0][value]", CITY)
         formData.append("data[1][name]", "street")
         formData.append("data[1][value]", STREET)
         formData.append("data[2][name]", "updateFact")
@@ -167,7 +167,7 @@ async function run() {
   if (!isOutage) return
 
   const isScheduled = checkIsScheduled(info)
-  if (isOutage && !isScheduled) {
+  if (isOutage) {
     const message = generateMessage(info)
     await sendNotification(message)
   }
