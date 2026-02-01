@@ -23,11 +23,6 @@ export function loadLastMessage() {
     const today = new Date().toLocaleDateString("en-CA", {
       timeZone: "Europe/Kyiv",
     })
-
-    if (messageDay < today) {
-      deleteLastMessage()
-      return null
-    }
   }
 
   return lastMessage
