@@ -164,7 +164,17 @@ async function run() {
   const info = await getInfo()
   const isOutage = checkIsOutage(info)
 
-  if (!isOutage) return
+  if (!isOutage) {
+    deleteLastMessage()
+    return
+  }
+
+  if (isOutage) {
+    const message = generateMessage(info)
+    await sendNotification(message)
+  }
+}
+
 
   const isScheduled = checkIsScheduled(info)
   if (isOutage) {
