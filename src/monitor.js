@@ -112,7 +112,7 @@ function generateMessage(info) {
     `⚠️ <i>${reason}</i>`,
     `🪫 <code>${begin} — ${end}</code>`,
     "",
-    "🤖 <i>Повідомлення сформовано автоматично.</i>",
+    "🤖 <i>Це повідомлення оновлюється автоматично</i>",
     "",
     `🔄 <i>Оновлення на сайті: ${updateTimestamp}</i>`,
     `🕒 <i>Час перевірки: ${getCurrentTime()}</i>`,
