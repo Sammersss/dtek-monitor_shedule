@@ -26,6 +26,7 @@ async function getInfo() {
   try {
     await browserPage.goto(SHUTDOWNS_PAGE, {
       waitUntil: "load",
+      timeout: 60000, // Збільшимо таймаут до 60с, бо сайт ДТЕК буває повільним
     })
 
     const csrfTokenTag = await browserPage.waitForSelector(
@@ -38,7 +39,6 @@ async function getInfo() {
       async ({ CITY, STREET, csrfToken }) => {
         const formData = new URLSearchParams()
         formData.append("method", "getHomeNum")
-        // Київський сайт не потребує city
         // formData.append("data[0][name]", "city")
         // formData.append("data[0][value]", CITY)
         formData.append("data[0][name]", "street")
@@ -72,38 +72,25 @@ function checkIsOutage(info) {
   console.log("🌀 Checking power outage...")
 
   if (!info?.data) {
-    throw Error("❌ Power outage info missed.")
+    // Якщо дані не прийшли, вважаємо що це помилка, а не відсутність відключення
+    // Краще викинути помилку, щоб не видалити випадково файл повідомлення
+    throw Error("❌ Power outage info missed or empty response.")
   }
 
   const { sub_type, start_date, end_date, type } = info?.data?.[HOUSE] || {}
+  
+  // Перевірка: чи є хоч якісь дані про відключення
   const isOutageDetected =
-    sub_type !== "" || start_date !== "" || end_date !== "" || type !== ""
+    (sub_type && sub_type !== "") || 
+    (start_date && start_date !== "") || 
+    (end_date && end_date !== "") || 
+    (type && type !== "")
 
   isOutageDetected
     ? console.log("🚨 Power outage detected!")
     : console.log("⚡️ No power outage!")
 
   return isOutageDetected
-}
-
-// Залишаємо для сумісності, але не використовуємо для блокування
-function checkIsScheduled(info) {
-  console.log("🌀 Checking whether power outage scheduled...")
-
-  if (!info?.data) {
-    throw Error("❌ Power outage info missed.")
-  }
-
-  const { sub_type } = info?.data?.[HOUSE] || {}
-  const isScheduled =
-    !sub_type.toLowerCase().includes("авар") &&
-    !sub_type.toLowerCase().includes("екст")
-
-  isScheduled
-    ? console.log("🗓️ Power outage scheduled!")
-    : console.log("⚠️ Power outage not scheduled!")
-
-  return isScheduled
 }
 
 function generateMessage(info) {
@@ -113,17 +100,22 @@ function generateMessage(info) {
   const { updateTimestamp } = info || {}
 
   const reason = capitalize(sub_type)
-  const begin = start_date.split(" ")[0]
-  const end = end_date.split(" ")[0]
+  
+  // ВИПРАВЛЕННЯ: Більше не обрізаємо дату через split(" ")[0]
+  // trim() прибере зайві пробіли, якщо вони є
+  const begin = start_date ? start_date.trim() : "Невідомо"
+  const end = end_date ? end_date.trim() : "Невідомо"
 
   return [
-    "⚡️ <b>Зафіксовано відключення:</b>",
-    `🪫 <code>${begin} — ${end}</code>`,
+    "⚡️ <b>За даними сайту ДТЕК:</b>",
     "",
-    `⚠️ <i>${reason}.</i>`,
+    `⚠️ <i>${reason}</i>`, // Спочатку причина
+    `🪫 <code>${begin} — ${end}</code>`, // Потім дати
+    "",
+    "🤖 <i>Повідомлення сформовано автоматично</i>", // Уточнення
     "\n",
-    `🔄 <i>${updateTimestamp}</i>`,
-    `💬 <i>${getCurrentTime()}</i>`,
+    `🔄 <i>Оновлення на сайті: ${updateTimestamp}</i>`,
+    `💬 <i>Перевірка: ${getCurrentTime()}</i>`,
   ].join("\n")
 }
 
@@ -135,6 +127,9 @@ async function sendNotification(message) {
   console.log("🌀 Sending notification...")
 
   const lastMessage = loadLastMessage() || {}
+  
+  // Логіка проста: якщо message_id є — Telegram відредагує старе повідомлення.
+  // Якщо немає — надішле нове.
   try {
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${
@@ -153,12 +148,26 @@ async function sendNotification(message) {
     )
 
     const data = await response.json()
-    saveLastMessage(data.result)
+    
+    // Якщо Telegram каже, що повідомлення не змінилося (ми шлемо той самий текст),
+    // він може повернути помилку, але це ок.
+    if (!data.ok && data.description?.includes("message is not modified")) {
+       console.log("🟡 Message content is the same, skipping update.")
+       return
+    }
 
-    console.log("🟢 Notification sent.")
+    if (data.ok) {
+        saveLastMessage(data.result)
+        console.log("🟢 Notification sent/updated.")
+    } else {
+        console.error("🔴 Telegram API error:", data)
+    }
+
   } catch (error) {
-    console.log("🔴 Notification not sent.", error.message)
-    deleteLastMessage()
+    console.log("🔴 Notification failed.", error.message)
+    // Якщо сталася критична помилка відправки (наприклад, видалили повідомлення вручну),
+    // можна видалити файл, щоб наступного разу надіслати нове.
+    // deleteLastMessage()
   }
 }
 
@@ -166,11 +175,34 @@ async function run() {
   const info = await getInfo()
   const isOutage = checkIsOutage(info)
 
+  // Сценарій 1: Світло Є
   if (!isOutage) {
-    deleteLastMessage()
+    const lastMessage = loadLastMessage()
+    
+    // Якщо у нас зберігся файл про відключення, значить світло ТІЛЬКИ ЩО дали
+    if (lastMessage) {
+        console.log("💚 Power restored! Updating status...")
+        
+        // Оновлюємо старе повідомлення на "Зелене"
+        await sendNotification(
+            [
+                "💚 <b>Електропостачання відновлено!</b>",
+                "",
+                `💬 <i>${getCurrentTime()}</i>`
+            ].join("\n")
+        )
+        
+        // Тепер, коли ми сповістили, можна видаляти файл.
+        // Наступне відключення прийде новим повідомленням.
+        deleteLastMessage()
+    } else {
+        // Світла нема, файлу нема — все стабільно добре, нічого не робимо
+        console.log("✅ Stable power supply. No action needed.")
+    }
     return
   }
 
+  // Сценарій 2: Світла НЕМАЄ (isOutage = true)
   if (isOutage) {
     const message = generateMessage(info)
     await sendNotification(message)
