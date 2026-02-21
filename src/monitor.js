@@ -59,9 +59,8 @@ async function getInfo() {
       { CITY, STREET, csrfToken }
     )
 
-    console.log("✅ Getting info finished.")
+    console.log("✅ Getting info finished.", info)
     return info
-    console.log(info)    
   } catch (error) {
     throw Error(`❌ Getting info failed: ${error.message}`)
   } finally {
@@ -71,11 +70,11 @@ async function getInfo() {
 
 function checkIsOutage(info) {
   console.log("🌀 Checking power outage...")
+  console.log(info)
 
   if (!info?.data) {
     // Якщо дані не прийшли, вважаємо що це помилка, а не відсутність відключення
     // Краще викинути помилку, щоб не видалити випадково файл повідомлення
-    console.log(info)
     throw Error("❌ Power outage info missed or empty response.")
     
   }
