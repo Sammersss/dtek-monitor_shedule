@@ -74,7 +74,7 @@ function checkIsOutage(info) {
   if (!info?.data) {
     // Якщо дані не прийшли, вважаємо що це помилка, а не відсутність відключення
     // Краще викинути помилку, щоб не видалити випадково файл повідомлення
-    console.log(data)
+    console.log(info)
     throw Error("❌ Power outage info missed or empty response.")
     
   }
