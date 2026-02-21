@@ -46,6 +46,7 @@ async function getInfo() {
         formData.append("data[1][name]", "updateFact")
         formData.append("data[1][value]", new Date().toLocaleString("uk-UA"))
         console.log(info)
+        console.log(formData)
 
         const response = await fetch("/ua/ajax", {
           method: "POST",
@@ -54,7 +55,7 @@ async function getInfo() {
             "x-csrf-token": csrfToken,
           },
           body: formData,
-          console.log(formData)
+          
         })
         return await response.json()
       },
