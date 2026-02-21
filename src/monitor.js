@@ -54,14 +54,13 @@ async function getInfo() {
             "x-csrf-token": csrfToken,
           },
           body: formData,
-          
         })
         return await response.json()
       },
       { CITY, STREET, csrfToken }
-      console.log(info)
-      console.log(formData)
     )
+    console.log(info)
+    console.log(formData)
 
     console.log("✅ Getting info finished.", info)
     return info
