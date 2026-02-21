@@ -60,8 +60,8 @@ async function getInfo() {
     )
 
     console.log("✅ Getting info finished.")
-    console.log(info)
     return info
+    console.log(info)    
   } catch (error) {
     throw Error(`❌ Getting info failed: ${error.message}`)
   } finally {
