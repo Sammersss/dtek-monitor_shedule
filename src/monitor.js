@@ -53,6 +53,7 @@ async function getInfo() {
             "x-csrf-token": csrfToken,
           },
           body: formData,
+          console.log(formData),
         })
         return await response.json()
       },
