@@ -53,7 +53,6 @@ async function getInfo() {
             "x-csrf-token": csrfToken,
           },
           body: formData,
-          console.log(formData),
         })
         return await response.json()
       },
@@ -61,6 +60,7 @@ async function getInfo() {
     )
 
     console.log("✅ Getting info finished.")
+    console.log(info)
     return info
   } catch (error) {
     throw Error(`❌ Getting info failed: ${error.message}`)
