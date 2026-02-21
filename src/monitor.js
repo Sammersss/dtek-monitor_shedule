@@ -39,8 +39,8 @@ async function getInfo() {
       async ({ CITY, STREET, csrfToken }) => {
         const formData = new URLSearchParams()
         formData.append("method", "getHomeNum")
-        // formData.append("data[0][name]", "city")
-        // formData.append("data[0][value]", CITY)
+        formData.append("data[0][name]", "city")
+        formData.append("data[0][value]", CITY)
         formData.append("data[0][name]", "street")
         formData.append("data[0][value]", STREET)
         formData.append("data[1][name]", "updateFact")
